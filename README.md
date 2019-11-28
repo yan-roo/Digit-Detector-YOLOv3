@@ -1,11 +1,11 @@
 #  Street View House Numbers Detection by Keras-YOLOv3
 
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg)](LICENSE)
-<img src="output/1.png"><img src="output/6.png"><img src="output/7.png"><img src="output/9.png">
+
 ## Introduction
 
-A Keras implementation of YOLOv3 (Tensorflow backend) inspired by [allanzelener/YAD2K](https://github.com/allanzelener/YAD2K).
-
+A Keras implementation of YOLOv3 (Tensorflow backend) inspired by [allanzelener/YAD2K](https://github.com/allanzelener/YAD2K).<br>
+<img src="output/1.png" width="100" height="100"><img src="output/6.png" width="100" height="100"><img src="output/7.png" width="100" height="100"><img src="output/9.png" width="100" height="100"><img src="output/10.png" width="100" height="100">
 
 ---
 
@@ -20,10 +20,10 @@ wget https://pjreddie.com/media/files/yolov3.weights
 python convert.py yolov3.cfg yolov3.weights model_data/yolo.h5
 
 python yolo_video.py --model_path logs/svhn_weights/trained_weights_final.h5
-									--anchors_path model_data/yolo_anchors.txt
-									--classes_path model_data/svhn_classes.txt
-									--gpu_num 1
-									--input video_path
+                     --anchors_path model_data/yolo_anchors.txt
+		     --classes_path model_data/svhn_classes.txt
+		     --gpu_num 1
+		     --input video_path
 
 python yolo_video.py --img ./data/test/1.png
 python yolo_video.py --imgdir ./data/test 
@@ -49,8 +49,8 @@ For Tiny YOLOv3, just do in a similar way, just specify model path and anchor pa
 
 	```
 	wget https://github.com/penny4860/svhn-voc-annotation-format/archive/master.zip
-unzip master.zip
-python voc_annotation.py
+	unzip master.zip
+	python voc_annotation.py
 	```
 
 3. Generate your own annotation file and class names file. **(option)** 
