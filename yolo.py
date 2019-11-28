@@ -18,11 +18,16 @@ from yolo3.utils import letterbox_image
 import os
 from keras.utils import multi_gpu_model
 
+import tensorflow as tf
+config = tf.ConfigProto()
+config.gpu_options.allow_growth=True
+sess = tf.Session(config=config)
+
 class YOLO(object):
     _defaults = {
-        "model_path": 'model_data/yolo.h5',
+        "model_path": 'logs/svhn_weights/ep087-loss10.368-val_loss10.663.h5',
         "anchors_path": 'model_data/yolo_anchors.txt',
-        "classes_path": 'model_data/coco_classes.txt',
+        "classes_path": 'model_data/svhn_classes.txt',
         "score" : 0.3,
         "iou" : 0.45,
         "model_image_size" : (416, 416),
@@ -99,8 +104,8 @@ class YOLO(object):
                 score_threshold=self.score, iou_threshold=self.iou)
         return boxes, scores, classes
 
-    def detect_image(self, image):
-        start = timer()
+
+    def detect_image(self, image, single_image=True, output=list(), bbox_set=list(), label_set=list(), score_set=list(), speed=list()):
 
         if self.model_image_size != (None, None):
             assert self.model_image_size[0]%32 == 0, 'Multiples of 32 required'
@@ -112,10 +117,11 @@ class YOLO(object):
             boxed_image = letterbox_image(image, new_image_size)
         image_data = np.array(boxed_image, dtype='float32')
 
-        print(image_data.shape)
+        if single_image:print(image_data.shape)
         image_data /= 255.
         image_data = np.expand_dims(image_data, 0)  # Add batch dimension.
 
+        start = timer()
         out_boxes, out_scores, out_classes = self.sess.run(
             [self.boxes, self.scores, self.classes],
             feed_dict={
@@ -123,14 +129,17 @@ class YOLO(object):
                 self.input_image_shape: [image.size[1], image.size[0]],
                 K.learning_phase(): 0
             })
+        end = timer()
 
-        print('Found {} boxes for {}'.format(len(out_boxes), 'img'))
-
+        if single_image:print('Found {} boxes for {}'.format(len(out_boxes), 'img'))
+        # Label & Score font Size.
         font = ImageFont.truetype(font='font/FiraMono-Medium.otf',
-                    size=np.floor(3e-2 * image.size[1] + 0.5).astype('int32'))
-        thickness = (image.size[0] + image.size[1]) // 300
+                    size=np.floor(6e-2 * image.size[1] + 0.5).astype('int32'))
+                    
+        # Bounding Box thickness.
+        thickness = max(1, (image.size[0] + image.size[1]) // 300)
 
-        for i, c in reversed(list(enumerate(out_classes))):
+        for i, c in (list(enumerate(out_classes))):
             predicted_class = self.class_names[c]
             box = out_boxes[i]
             score = out_scores[i]
@@ -139,12 +148,24 @@ class YOLO(object):
             draw = ImageDraw.Draw(image)
             label_size = draw.textsize(label, font)
 
-            top, left, bottom, right = box
-            top = max(0, np.floor(top + 0.5).astype('int32'))
-            left = max(0, np.floor(left + 0.5).astype('int32'))
-            bottom = min(image.size[1], np.floor(bottom + 0.5).astype('int32'))
-            right = min(image.size[0], np.floor(right + 0.5).astype('int32'))
-            print(label, (left, top), (right, bottom))
+            old_top, old_left, old_bottom, old_right = box
+            top = max(0, np.floor(old_top + 0.5).astype('int32'))
+            left = max(0, np.floor(old_left + 0.5).astype('int32'))
+            bottom = min(image.size[1], np.floor(old_bottom + 0.5).astype('int32'))
+            right = min(image.size[0], np.floor(old_right + 0.5).astype('int32'))
+            if single_image:
+                print(label, (old_left, old_top), (old_right, old_bottom))
+            else:
+                y1 = int(round(old_top))
+                x1 = int(round(old_left))
+                y2 = int(round(old_bottom))
+                x2 = int(round(old_right))
+                output_str='{} {} {} {} {}'.format(label, y1, x1, y2, x2)
+                output.append(output_str)
+                
+                bbox_set.append(([y1, x1, y2, x2]))
+                label_set.append(int(predicted_class))
+                score_set.append(score)
 
             if top - label_size[1] >= 0:
                 text_origin = np.array([left, top - label_size[1]])
@@ -162,8 +183,10 @@ class YOLO(object):
             draw.text(text_origin, label, fill=(0, 0, 0), font=font)
             del draw
 
-        end = timer()
+        #end = timer()
         print(end - start)
+        speed.append(float(end-start))
+        if single_image:print(end - start)
         return image
 
     def close_session(self):
